@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>政府人力招标巡检</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; color: #1d1d1f; }
+
+  .header {
+    background: linear-gradient(135deg, #1a73e8, #0d47a1);
+    color: white;
+    padding: 24px 32px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.15);
+  }
+  .header h1 { font-size: 22px; font-weight: 600; }
+  .header .sub { font-size: 13px; opacity: .8; margin-top: 4px; }
+
+  .stats {
+    display: flex; gap: 16px; padding: 16px 32px;
+  }
+  .stat-card {
+    background: white; border-radius: 10px; padding: 14px 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06); min-width: 120px;
+  }
+  .stat-card .num { font-size: 28px; font-weight: 700; color: #1a73e8; }
+  .stat-card .label { font-size: 12px; color: #888; margin-top: 2px; }
+  .stat-card .num.orange { color: #f57c00; }
+  .stat-card .num.green { color: #2e7d32; }
+
+  .toolbar {
+    padding: 12px 32px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  }
+  .toolbar input[type="text"] {
+    flex: 1; min-width: 200px; padding: 8px 14px; border: 1px solid #ddd;
+    border-radius: 8px; font-size: 14px; outline: none; transition: border .2s;
+  }
+  .toolbar input[type="text"]:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,.15); }
+  .filter-btn {
+    padding: 6px 16px; border-radius: 20px; border: 1px solid #ddd;
+    background: white; font-size: 13px; cursor: pointer; transition: all .2s;
+    user-select: none;
+  }
+  .filter-btn:hover { border-color: #1a73e8; color: #1a73e8; }
+  .filter-btn.active { background: #1a73e8; color: white; border-color: #1a73e8; }
+
+  .date-section { padding: 0 32px; }
+  .date-label {
+    font-size: 14px; font-weight: 600; color: #555;
+    padding: 16px 0 8px; border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+  }
+  .date-label .count {
+    background: #e3f2fd; color: #1a73e8; font-size: 12px;
+    padding: 2px 8px; border-radius: 10px; font-weight: 500;
+  }
+
+  .card {
+    background: white; border-radius: 10px; margin: 8px 0;
+    padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    transition: box-shadow .2s;
+    display: flex; gap: 14px; align-items: flex-start;
+  }
+  .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+
+  .badge {
+    font-size: 11px; padding: 3px 10px; border-radius: 4px;
+    white-space: nowrap; font-weight: 500; flex-shrink: 0;
+  }
+  .badge.open { background: #e8f5e9; color: #2e7d32; }
+  .badge.win  { background: #fff3e0; color: #e65100; }
+  .badge.other { background: #f5f5f5; color: #757575; }
+
+  .card-body { flex: 1; min-width: 0; }
+  .card-title {
+    font-size: 15px; font-weight: 500; margin-bottom: 6px;
+  }
+  .card-title a {
+    color: #1a73e8; text-decoration: none;
+  }
+  .card-title a:hover { text-decoration: underline; }
+  .card-meta {
+    font-size: 13px; color: #888; display: flex; gap: 16px; flex-wrap: wrap;
+  }
+  .card-meta span { white-space: nowrap; }
+  .card-keyword {
+    font-size: 11px; background: #fce4ec; color: #c62828;
+    padding: 1px 6px; border-radius: 3px; margin-left: 6px;
+  }
+
+  .empty {
+    text-align: center; padding: 60px 20px; color: #aaa; font-size: 15px;
+  }
+
+  .refresh-btn {
+    position: fixed; bottom: 24px; right: 24px;
+    width: 48px; height: 48px; border-radius: 50%;
+    background: #1a73e8; color: white; border: none;
+    font-size: 20px; cursor: pointer; box-shadow: 0 4px 16px rgba(26,115,232,.4);
+    transition: transform .2s;
+  }
+  .refresh-btn:hover { transform: scale(1.1); }
+
+  .loading { text-align: center; padding: 40px; color: #aaa; }
+  .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid #ddd; border-top-color: #1a73e8; border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 640px) {
+    .stats { padding: 12px 16px; gap: 10px; }
+    .toolbar { padding: 10px 16px; }
+    .date-section { padding: 0 16px; }
+    .card { padding: 12px 14px; }
+    .card-meta { gap: 8px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏛️ 政府人力招标巡检</h1>
+  <div class="sub" id="headerTime">加载中...</div>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="toolbar">
+  <input type="text" id="searchInput" placeholder="🔍 搜索标题、采购人、代理机构..." oninput="render()">
+  <button class="filter-btn active" data-filter="all" onclick="setFilter(this)">全部</button>
+  <button class="filter-btn" data-filter="open" onclick="setFilter(this)">🟢 招标中</button>
+  <button class="filter-btn" data-filter="win" onclick="setFilter(this)">🟡 已中标</button>
+  <button class="filter-btn" data-filter="other" onclick="setFilter(this)">其他</button>
+</div>
+
+<div class="date-section" id="content">
+  <div class="loading"><div class="spinner"></div><div style="margin-top:10px">加载数据...</div></div>
+</div>
+
+<button class="refresh-btn" onclick="loadData()" title="刷新数据">↻</button>
+
+<script>
+let allData = [{"title": "疏勒县实验学校高中食堂人力资源服务采购项目中标(成交)结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260728_27019421.htm", "publish_date": "2026.07.28 13:23:43", "purchaser": "疏勒县实验学校", "agent": "新疆太初工程项目管理有限公司", "notice_type": "中标公告", "search_keyword": "人力资源"}, {"title": "景谷傣族彝族自治县人力资源和社会保障局2026年职业培训项目中标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260728_27018002.htm", "publish_date": "2026.07.28 10:22:57", "purchaser": "景谷傣族彝族自治县人力资源和社会保障局", "agent": "普洱正格工程咨询有限公司", "notice_type": "中标公告", "search_keyword": "人力资源"}, {"title": "潜江市人力资源和社会保障信息中心企业养老保险省集中系统运维费中标(成交)结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260728_27017656.htm", "publish_date": "2026.07.28 09:35:40", "purchaser": "潜江市人力资源和社会保障信息中心", "agent": "潜江市政府采购中心", "notice_type": "中标公告", "search_keyword": "人力资源"}, {"title": "洛阳市老城区人民法院人力资源服务 （书记员、辅警等）项目-废标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/qtgg/202607/t20260727_27014161.htm", "publish_date": "2026.07.27 16:53:47", "purchaser": "洛阳市老城区人民法院", "agent": "洛阳建信招标代理有限公司", "notice_type": "其他公告", "search_keyword": "人力资源"}, {"title": "绥江县人力资源和社会保障局2026年补贴性培训项目  成交公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/cjgg/202607/t20260727_27013902.htm", "publish_date": "2026.07.27 16:43:05", "purchaser": "绥江县人力资源和社会保障局", "agent": "金昭（云南）项目管理有限公司", "notice_type": "成交公告", "search_keyword": "人力资源"}, {"title": "宾县人力资源和社会保障局2026年哈尔滨市“丁香人才周”(春季)宾县所属事业单位公开招聘工作人员笔试、面试相关工作组织中标（成交）结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/cjgg/202607/t20260727_27013617.htm", "publish_date": "2026.07.27 16:30:33", "purchaser": "宾县人力资源和社会保障局", "agent": "黑龙江祥诺工程项目管理有限公司", "notice_type": "成交公告", "search_keyword": "人力资源"}, {"title": "纳雍县人力资源和社会保障局关于2026年纳雍县职业技能培训项目（K包）的更正公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gzgg/202607/t20260727_27013659.htm", "publish_date": "2026.07.27 16:29:09", "purchaser": "纳雍县人力资源和社会保障局", "agent": "贵州华益建设集团有限公司", "notice_type": "更正公告", "search_keyword": "人力资源"}, {"title": "纳雍县人力资源和社会保障局关于2026年纳雍县职业技能培训项目（J包）的更正公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gzgg/202607/t20260727_27013658.htm", "publish_date": "2026.07.27 16:29:09", "purchaser": "纳雍县人力资源和社会保障局", "agent": "贵州华益建设集团有限公司", "notice_type": "更正公告", "search_keyword": "人力资源"}, {"title": "天水市人力资源和社会保障局2026年职业技能培训服务项目(二次)招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260727_27012651.htm", "publish_date": "2026.07.27 15:42:06", "purchaser": "天水市人力资源和社会保障局", "agent": "甘肃孺子牛项目管理咨询有限公司", "notice_type": "公开招标", "search_keyword": "人力资源"}, {"title": "常州市金坛区人力资源和培训中心大楼一、二层食堂运行管理服务项目中标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260727_27011794.htm", "publish_date": "2026.07.27 14:40:18", "purchaser": "常州市金坛区人民政府办公室", "agent": "江苏铭硕全过程项目管理有限公司", "notice_type": "中标公告", "search_keyword": "人力资源"}, {"title": "人力资源和社会保障部机关服务中心打印设备及配件（询价）采购项目成交公告", "url": "http://www.ccgp.gov.cn/cggg/zygg/cjgg/202607/t20260727_27010556.htm", "publish_date": "2026.07.27 11:05:20", "purchaser": "人力资源和社会保障部机关服务中心", "agent": "中央国家机关政府采购中心", "notice_type": "成交公告", "search_keyword": "人力资源"}, {"title": "喀什大学重大设备更新（5.4人工智能数据抓取及衍生智能服务创新平台-多场景应用系统-人力资源管理平台(一期））项目（三次）中标(成交)结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260725_27008842.htm", "publish_date": "2026.07.25 19:57:12", "purchaser": "喀什大学", "agent": "喀什地区公共资源交易中心", "notice_type": "中标公告", "search_keyword": "人力资源"}, {"title": "人力资源公共服务平台服务项目的竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260725_27008099.htm", "publish_date": "2026.07.25 16:19:03", "purchaser": "中国(上海)自由贸易试验区管理委员会保税区管理局", "agent": "上海华瑞建设经济咨询有限公司", "notice_type": "竞争性磋商", "search_keyword": "人力资源"}, {"title": "浙江嘉晟工程项目管理有限公司关于瑞安市人力资源和社会保障局人才交流和市场服务中心人事档案整理及数字化加工项目（第三期）的竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260725_27007714.htm", "publish_date": "2026.07.25 12:52:38", "purchaser": "瑞安市人力资源和社会保障局", "agent": "浙江嘉晟工程项目管理有限公司", "notice_type": "竞争性磋商", "search_keyword": "人力资源"}, {"title": "阿克苏地区库车中等职业技术学校人力资源外包服务采购项目废标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/qtgg/202607/t20260725_27007567.htm", "publish_date": "2026.07.25 11:22:13", "purchaser": "阿克苏地区库车中等职业技术学校", "agent": "库车市政务服务和公共资源交易中心", "notice_type": "其他公告", "search_keyword": "人力资源"}, {"title": "济南市历下区人力资源和社会保障局2026年根治拖欠农民工工资工作管理服务项目竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260724_27007283.htm", "publish_date": "2026.07.24 23:47:23", "purchaser": "济南市历下区人力资源和社会保障局（本级）", "agent": "山东泽瑞工程项目管理有限公司", "notice_type": "竞争性磋商", "search_keyword": "人力资源"}, {"title": "温州市人力资源和社会保障局关于1#楼空调更新项目项目的采购公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260724_27006444.htm", "publish_date": "2026.07.24 20:12:36", "purchaser": "温州市人力资源和社会保障局", "agent": "浙江工汇项目管理有限公司", "notice_type": "公开招标", "search_keyword": "人力资源"}, {"title": "南方医科大学南方医院人力资源系统建设项目(二次)（0809-26411GDG303010001）公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260724_27005711.htm", "publish_date": "2026.07.24 18:32:01", "purchaser": "南方医科大学南方医院", "agent": "广东华伦招标有限公司", "notice_type": "公开招标", "search_keyword": "人力资源"}, {"title": "河北省人力资源和社会保障厅信息中心信息系统等保测评公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260724_27004455.htm", "publish_date": "2026.07.24 17:23:30", "purchaser": "河北省人力资源和社会保障厅信息中心", "agent": "河北省公共资源交易中心", "notice_type": "公开招标", "search_keyword": "人力资源"}, {"title": "叙永县人力资源和社会保障局叙永县东西部协作干部人才综合能力提升培训项目竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260724_27004071.htm", "publish_date": "2026.07.24 17:07:39", "purchaser": "叙永县人力资源和社会保障局", "agent": "泸州嘉和诚信招标代理服务有限公司", "notice_type": "竞争性磋商", "search_keyword": "人力资源"}, {"title": "平定县人力资源和社会保障局购买基层就业公共服务项目结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260724_27003875.htm", "publish_date": "2026.07.24 17:01:38", "purchaser": "平定县人力资源和社会保障局", "agent": "平定县政府采购中心", "notice_type": "中标公告", "search_keyword": "人力资源"}, {"title": "丹巴县人力资源和社会保障局技能提升行动培训采购更正公告（第一次）", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gzgg/202607/t20260724_27003448.htm", "publish_date": "2026.07.24 16:46:08", "purchaser": "丹巴县人力资源和社会保障局", "agent": "四川金与顺招标代理有限公司", "notice_type": "更正公告", "search_keyword": "人力资源"}, {"title": "吕梁市人力资源和社会保障局单一来源采购吕梁山护工全媒体宣传项目结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260724_27002965.htm", "publish_date": "2026.07.24 16:30:37", "purchaser": "吕梁市人力资源和社会保障局", "agent": "山西聚成项目管理有限责任公司", "notice_type": "中标公告", "search_keyword": "人力资源"}, {"title": "2026年惠东县人力资源和社会保障局食堂配料配送服务结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/cjgg/202607/t20260724_27002235.htm", "publish_date": "2026.07.24 16:00:48", "purchaser": "惠东县人力资源和社会保障局", "agent": "惠州市恒达招标代理有限公司", "notice_type": "成交公告", "search_keyword": "人力资源"}, {"title": "万源市人力资源和社会保障局2026年度就业创业职业技能培训竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260724_27000628.htm", "publish_date": "2026.07.24 14:38:34", "purchaser": "万源市人力资源和社会保障局", "agent": "万源市人民政府采购中心", "notice_type": "竞争性磋商", "search_keyword": "人力资源"}, {"title": "苏大附一院AI药学人力资源分析预测模型成交公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/cjgg/202607/t20260724_27000358.htm", "publish_date": "2026.07.24 14:05:17", "purchaser": "苏州大学附属第一医院", "agent": "苏州市政府集中采购中心", "notice_type": "成交公告", "search_keyword": "人力资源"}, {"title": "哈尔滨市香坊区人力资源和社会保障局2026年“丁香人才周”（春季）香坊区所属事业单位公开招聘工作人员中标（成交）结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/cjgg/202607/t20260724_27000258.htm", "publish_date": "2026.07.24 13:50:16", "purchaser": "哈尔滨市香坊区人力资源和社会保障局", "agent": "黑龙江国政项目管理有限公司", "notice_type": "成交公告", "search_keyword": "人力资源"}, {"title": "威宁彝族回族苗族自治县人力资源和社会保障局关于威宁自治县2025年度工伤预防宣传培训（二次）的更正公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gzgg/202607/t20260724_26999731.htm", "publish_date": "2026.07.24 11:56:58", "purchaser": "威宁彝族回族苗族自治县人力资源和社会保障局", "agent": "贵州合正工程管理服务有限公司", "notice_type": "更正公告", "search_keyword": "人力资源"}, {"title": "黄龙县人力资源和社会保障局瓦子街战役烈士陵园业务用房等基础设施维修改造工程竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260724_26999643.htm", "publish_date": "2026.07.24 11:47:51", "purchaser": "黄龙县人力资源和社会保障局", "agent": "黄龙县政府采购中心", "notice_type": "竞争性磋商", "search_keyword": "人力资源"}, {"title": "人力资源社会保障部考试中心答题卡扫描服务项目竞争性磋商", "url": "http://www.ccgp.gov.cn/cggg/zygg/jzxcs/202607/t20260724_26997913.htm", "publish_date": "2026.07.24 08:10:53", "purchaser": "人力资源和社会保障部", "agent": "中国交通进出口有限公司", "notice_type": "竞争性磋商", "search_keyword": "人力资源"}, {"title": "第十四届黄河口职业技能竞赛——第二届东营市人力资源服务职业技能竞赛项目竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260723_26997710.htm", "publish_date": "2026.07.23 23:48:09", "purchaser": "东营市人力资源和社会保障局本级", "agent": "东营华辰项目管理有限公司", "notice_type": "竞争性磋商", "search_keyword": "人力资源"}, {"title": "同江市人力资源和社会保障综合服务中心档案影像化加工外包服务竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260723_26997311.htm", "publish_date": "2026.07.23 22:41:14", "purchaser": "同江市人力资源和社会保障综合服务中心", "agent": "黑龙江省岳洋建设工程项目管理有限公司", "notice_type": "竞争性磋商", "search_keyword": "人力资源"}, {"title": "昆明市晋宁区人力资源和社会保障局职业技能培训、创业培训、网络创业培训服务采购竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260723_26996483.htm", "publish_date": "2026.07.23 19:17:50", "purchaser": "昆明市晋宁区人力资源和社会保障局", "agent": "云南中联招标代理有限公司", "notice_type": "竞争性磋商", "search_keyword": "人力资源"}, {"title": "天津市人力资源和社会保障局机关 全市创业能力提升训练营项目 (项目编号:HYGP-2026-C-110)中标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260723_26996303.htm", "publish_date": "2026.07.23 18:51:20", "purchaser": "天津市人力资源和社会保障局机关", "agent": "天津昊宇工程咨询有限公司", "notice_type": "中标公告", "search_keyword": "人力资源"}, {"title": "广州市人力资源和社会保障数据服务中心2026-2027年网络租赁和安全运维项目之教科网子项目（CZ2026-0979）招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260723_26996051.htm", "publish_date": "2026.07.23 18:24:15", "purchaser": "广州市人力资源和社会保障数据服务中心", "agent": "广州市政府采购中心", "notice_type": "公开招标", "search_keyword": "人力资源"}, {"title": "武汉市新洲区人力资源和社会保障局新洲区购买就业创业服务项目竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260723_26995706.htm", "publish_date": "2026.07.23 17:56:57", "purchaser": "武汉市新洲区人力资源和社会保障局", "agent": "武汉恒骥项目管理咨询有限公司", "notice_type": "竞争性磋商", "search_keyword": "人力资源"}, {"title": "河北省人力资源和社会保障厅2026年“三支一扶”人员能力提升专项活动竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260723_26995469.htm", "publish_date": "2026.07.23 17:43:56", "purchaser": "河北省人力资源和社会保障厅本级", "agent": "河北择凯工程项目管理有限公司", "notice_type": "竞争性磋商", "search_keyword": "人力资源"}, {"title": "浙江信镧建设工程咨询有限公司关于浙江省人力资源和社会保障信息中心浙江省职业能力建设一体化工作系统运维中标(成交)结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260723_26995284.htm", "publish_date": "2026.07.23 17:36:51", "purchaser": "浙江省人力资源和社会保障信息中心", "agent": "浙江信镧建设工程咨询有限公司", "notice_type": "中标公告", "search_keyword": "人力资源"}, {"title": "廊坊市人力资源和社会保障局机关物业服务项目竞争性谈判中标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260723_26994970.htm", "publish_date": "2026.07.23 17:23:32", "purchaser": "廊坊市人力资源和社会保障局本级", "agent": "廊坊市政府采购服务中心", "notice_type": "竞争性谈判", "search_keyword": "人力资源"}, {"title": "纳雍县人力资源和社会保障局关于纳雍县公共实训基地无人机设施设备采购的竞争性谈判公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxtpgg/202607/t20260723_26994505.htm", "publish_date": "2026.07.23 17:05:17", "purchaser": "纳雍县人力资源和社会保障局", "agent": "贵州万和工程招标代理造价咨询有限责任公司", "notice_type": "竞争性谈判", "search_keyword": "人力资源"}, {"title": "韶关市人社局韶关就业招聘服务平台建设（2026-2029）项目招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260723_26993137.htm", "publish_date": "2026.07.23 16:12:14", "purchaser": "韶关市人力资源和社会保障局", "agent": "智埔国际建设集团有限公司", "notice_type": "公开招标", "search_keyword": "招聘服务"}, {"title": "祥云县公共就业和人才服务中心2026年职业技能培训项目公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260727_27015733.htm", "publish_date": "2026.07.27 18:02:59", "purchaser": "祥云县公共就业和人才服务中心", "agent": "云南阔锐工程项目管理有限公司", "notice_type": "公开招标", "search_keyword": "人才服务"}, {"title": "烟台市公共就业和人才服务中心2026烟台人才周系列活动承办服务项目公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260727_27010952.htm", "publish_date": "2026.07.27 11:44:23", "purchaser": "烟台市公共就业和人才服务中心", "agent": "山东广信招标有限责任公司烟台市分公司", "notice_type": "公开招标", "search_keyword": "人才服务"}, {"title": "烟台市公共就业和人才服务中心2026年度烟台市人才工程（项目）评审综合论证承办单位选定项目公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260724_27007121.htm", "publish_date": "2026.07.24 23:47:39", "purchaser": "烟台市公共就业和人才服务中心", "agent": "山东省鲁成招标有限公司", "notice_type": "公开招标", "search_keyword": "人才服务"}, {"title": "淄博市公共就业和人才服务中心“两园一场”运营及维护采购项目成交结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260724_27007265.htm", "publish_date": "2026.07.24 23:47:11", "purchaser": "淄博市公共就业和人才服务中心", "agent": "山东新起点项目管理有限公司", "notice_type": "中标公告", "search_keyword": "人才服务"}, {"title": "勐腊县公共就业和人才服务中心2026年职业技能培训采购项目（三次）六标段招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260724_27005492.htm", "publish_date": "2026.07.24 18:12:54", "purchaser": "勐腊县公共就业和人才服务中心", "agent": "昆明建设咨询管理有限公司", "notice_type": "公开招标", "search_keyword": "人才服务"}, {"title": "昆明市卫生健康人才服务中心“昆明市卫生健康数据中心网络通信”项目单一来源成交公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/cjgg/202607/t20260724_27001122.htm", "publish_date": "2026.07.24 15:12:54", "purchaser": "昆明市卫生健康人才服务中心（昆明市卫生信息中心）", "agent": "昆明市机关事务管理局政府采购办公室", "notice_type": "成交公告", "search_keyword": "人才服务"}, {"title": "山东省滨州市无棣县公共就业和人才服务中心“乐业之家”就业创业赋能中心LED显示屏采购(废标公告)", "url": "http://www.ccgp.gov.cn/cggg/dfgg/qtgg/202607/t20260724_26999496.htm", "publish_date": "2026.07.24 11:44:08", "purchaser": "无棣县公共就业和人才服务中心", "agent": "滨州市政府采购中心", "notice_type": "终止公告", "search_keyword": "人才服务"}, {"title": "西安市人才服务中心西安大学生就业指导赋能活动竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260723_26996191.htm", "publish_date": "2026.07.23 18:39:51", "purchaser": "西安市人才服务中心", "agent": "华晟国际项目管理有限公司", "notice_type": "竞争性磋商", "search_keyword": "人才服务"}, {"title": "西安市人才服务中心困难毕业生精准帮扶活动竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260723_26996188.htm", "publish_date": "2026.07.23 18:39:25", "purchaser": "西安市人才服务中心", "agent": "华晟国际项目管理有限公司", "notice_type": "竞争性磋商", "search_keyword": "人才服务"}, {"title": "辽宁省就业和人才服务中心辽宁省就业和人才服务中心物业管理服务采购采购公告(JH26-210000-21664(LNZC2026-0194(1)))", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260723_26995231.htm", "publish_date": "2026.07.23 17:32:15", "purchaser": "辽宁省就业和人才服务中心", "agent": "辽宁省公共资源交易中心(辽宁省政府采购中心)", "notice_type": "竞争性磋商", "search_keyword": "人才服务"}, {"title": "辽宁省就业和人才服务中心辽宁省就业和人才服务中心物业管理服务采购采购公告(JH26-210000-21664(LNZC2026-0194(1)))", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260723_26995207.htm", "publish_date": "2026.07.23 17:32:01", "purchaser": "辽宁省就业和人才服务中心", "agent": "辽宁省公共资源交易中心(辽宁省政府采购中心)", "notice_type": "竞争性磋商", "search_keyword": "人才服务"}, {"title": "辽宁省就业和人才服务中心辽宁省就业和人才服务中心物业管理服务采购采购公告(JH26-210000-21664(LNZC2026-0194(1)))", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260723_26995206.htm", "publish_date": "2026.07.23 17:31:58", "purchaser": "辽宁省就业和人才服务中心", "agent": "辽宁省公共资源交易中心(辽宁省政府采购中心)", "notice_type": "竞争性磋商", "search_keyword": "人才服务"}, {"title": "西安市人才服务中心2026年高校毕业生就业创业典型宣传活动项目竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260723_26995074.htm", "publish_date": "2026.07.23 17:27:31", "purchaser": "西安市人才服务中心", "agent": "陕西正信招标有限公司", "notice_type": "竞争性磋商", "search_keyword": "人才服务"}, {"title": "西安市人才服务中心2026年西安大学生求职技能提升专项活动项目竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260723_26995092.htm", "publish_date": "2026.07.23 17:27:11", "purchaser": "西安市人才服务中心", "agent": "陕西正信招标有限公司", "notice_type": "竞争性磋商", "search_keyword": "人才服务"}, {"title": "景洪市公共就业和人才服务中心2026年职业技能培训采购项目（二次）五标段中标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260723_26993679.htm", "publish_date": "2026.07.23 16:32:57", "purchaser": "景洪市公共就业和人才服务中心", "agent": "昆明建设咨询管理有限公司", "notice_type": "中标公告", "search_keyword": "人才服务"}, {"title": "个旧市公共就业和人才服务中心2026年职业技能培训服务采购项目（四标段）（五标段）（二次）中标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260723_26991571.htm", "publish_date": "2026.07.23 14:47:50", "purchaser": "个旧市公共就业和人才服务中心", "agent": "云南招标股份有限公司", "notice_type": "中标公告", "search_keyword": "人才服务"}, {"title": "十堰市茅箭区公共就业和人才服务中心茅箭区“就在茅箭”供求双向智慧化赋能项目中标(成交)结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260723_26991115.htm", "publish_date": "2026.07.23 13:49:54", "purchaser": "十堰市茅箭区公共就业和人才服务中心", "agent": "湖北筑然工程咨询有限公司", "notice_type": "中标公告", "search_keyword": "人才服务"}, {"title": "山东省滨州市无棣县公共就业和人才服务中心“乐业之家”就业创业赋能中心LED显示屏采购终止公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gzgg/202607/t20260723_26990489.htm", "publish_date": "2026.07.23 11:44:26", "purchaser": "无棣县公共就业和人才服务中心", "agent": "滨州市政府采购中心", "notice_type": "更正公告", "search_keyword": "人才服务"}, {"title": "勐腊县公共就业和人才服务中心2026年职业技能培训采购项目（二次）中标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260723_26990131.htm", "publish_date": "2026.07.23 11:12:53", "purchaser": "勐腊县公共就业和人才服务中心", "agent": "昆明建设咨询管理有限公司", "notice_type": "中标公告", "search_keyword": "人才服务"}, {"title": "勐腊县公共就业和人才服务中心2026年职业技能培训采购项目（二次）终止公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/fblbgg/202607/t20260723_26990122.htm", "publish_date": "2026.07.23 11:12:52", "purchaser": "勐腊县公共就业和人才服务中心", "agent": "昆明建设咨询管理有限公司", "notice_type": "终止公告", "search_keyword": "人才服务"}, {"title": "成都市教育人才服务中心星火教师攀登计划——卓越教师培育采购项目竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260722_26984176.htm", "publish_date": "2026.07.22 16:01:55", "purchaser": "成都市教育人才服务中心", "agent": "四川国际招标有限责任公司", "notice_type": "竞争性磋商", "search_keyword": "人才服务"}, {"title": "仙桃市劳动就业管理局仙桃市人力资源和人才服务产业园综合运营服务竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260721_26977507.htm", "publish_date": "2026.07.21 17:29:28", "purchaser": "仙桃市劳动就业管理局", "agent": "湖北皓琛项目管理有限公司", "notice_type": "竞争性磋商", "search_keyword": "人才服务"}, {"title": "宁波市国际招标有限公司关于宁波高新区新明中心小学（宁波高新区外国语学校分校）食堂用工服务项目的公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260724_27005646.htm", "publish_date": "2026.07.24 18:25:09", "purchaser": "宁波高新区新明中心小学（宁波高新区外国语学校分校)", "agent": "宁波市国际招标有限公司", "notice_type": "公开招标", "search_keyword": "用工服务"}, {"title": "浙江中诚工程管理科技有限公司关于浙江省杭州市上城区南宋太庙遗址项目考古作业特殊劳务用工服务中标(成交)结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260723_26996780.htm", "publish_date": "2026.07.23 20:08:28", "purchaser": "杭州市文物考古研究所", "agent": "浙江中诚工程管理科技有限公司", "notice_type": "中标公告", "search_keyword": "用工服务"}, {"title": "武汉市育英中学购买2026年学校食堂劳务用工服务公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260722_26983045.htm", "publish_date": "2026.07.22 15:00:56", "purchaser": "武汉市育英中学", "agent": "武汉市洪山区政府采购中心", "notice_type": "公开招标", "search_keyword": "用工服务"}, {"title": "宁波市国际招标有限公司关于宁波高新区求精书院2026学年食堂用工服务项目的公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260721_26977885.htm", "publish_date": "2026.07.21 17:45:18", "purchaser": "宁波高新区求精书院", "agent": "宁波市国际招标有限公司", "notice_type": "公开招标", "search_keyword": "用工服务"}, {"title": "西安市公安局雁塔分局机关食堂厨师劳务外包项目中标（成交）结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/cjgg/202607/t20260728_27019508.htm", "publish_date": "2026.07.28 13:40:56", "purchaser": "西安市公安局雁塔分局", "agent": "华招广和项目管理有限公司", "notice_type": "成交公告", "search_keyword": "劳务外包"}, {"title": "宜昌市妇幼保健院劳务外包项目第二次中标结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260728_27019444.htm", "publish_date": "2026.07.28 13:28:59", "purchaser": "宜昌市妇幼保健院", "agent": "湖北浩嘉工程项目管理有限公司", "notice_type": "中标公告", "search_keyword": "劳务外包"}, {"title": "学校食堂劳务外包服务招标(CQS26C01924)竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260728_27019246.htm", "publish_date": "2026.07.28 12:25:07", "purchaser": "重庆市城市建设高级技工学校", "agent": "重庆优凯项目管理有限公司", "notice_type": "竞争性磋商", "search_keyword": "劳务外包"}, {"title": "肇州县农村公路事业发展中心公路养护部分项目劳务外包服务采购中标（成交）结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/cjgg/202607/t20260728_27018627.htm", "publish_date": "2026.07.28 11:22:49", "purchaser": "肇州县农村公路事业发展中心", "agent": "黑龙江中腾工程项目管理有限公司", "notice_type": "成交公告", "search_keyword": "劳务外包"}, {"title": "白鹭洲中学食堂劳务外包项目变更公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gzgg/202607/t20260728_27018183.htm", "publish_date": "2026.07.28 10:40:10", "purchaser": "江西省吉安市白鹭洲中学", "agent": "吉安如翔工程管理有限公司", "notice_type": "更正公告", "search_keyword": "劳务外包"}, {"title": "丽水瓯瑞项目管理有限公司关于青田县船寮高级中学食堂劳务外包（2026学年-2027学年）废标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/qtgg/202607/t20260728_27017749.htm", "publish_date": "2026.07.28 09:47:47", "purchaser": "青田县船寮高级中学", "agent": "丽水瓯瑞项目管理有限公司", "notice_type": "其他公告", "search_keyword": "劳务外包"}, {"title": "武汉市黄陂区武湖东风小学武汉市黄陂区武湖东风小学食堂劳务外包服务项目结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260727_27016752.htm", "publish_date": "2026.07.27 21:42:36", "purchaser": "武汉市黄陂区武湖东风小学", "agent": "湖北亚精项目管理咨询有限公司", "notice_type": "中标公告", "search_keyword": "劳务外包"}, {"title": "甘泉初级中学学生餐厅劳务外包竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260727_27016399.htm", "publish_date": "2026.07.27 19:18:16", "purchaser": "甘泉县初级中学", "agent": "延安市甘泉县政府采购中心", "notice_type": "竞争性磋商", "search_keyword": "劳务外包"}, {"title": "九江市建设监理有限公司关于浔阳区湖滨桃园小学食堂劳务外包采购项目（项目编号：JJJS2026-082）澄清说明", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gzgg/202607/t20260727_27016316.htm", "publish_date": "2026.07.27 19:00:04", "purchaser": "浔阳区湖滨桃园小学", "agent": "九江市建设监理有限公司", "notice_type": "更正公告", "search_keyword": "劳务外包"}, {"title": "灵武市公安局2026年警官餐厅劳务外包采购项目竞争性磋商采购结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260727_27015840.htm", "publish_date": "2026.07.27 18:09:31", "purchaser": "灵武市公安局", "agent": "宁夏信邦招标代理有限公司", "notice_type": "竞争性磋商", "search_keyword": "劳务外包"}, {"title": "大渡口区公安分局食堂劳务外包服务(DDK26C00137)中标（成交）结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260727_27014583.htm", "publish_date": "2026.07.27 17:10:05", "purchaser": "重庆市公安局大渡口区分局", "agent": "重庆和定招标代理有限责任公司", "notice_type": "公开招标", "search_keyword": "劳务外包"}, {"title": "重庆市九龙坡区人民检察院食堂劳务外包服务(CQS26C01645)公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260727_27013777.htm", "publish_date": "2026.07.27 16:35:05", "purchaser": "重庆市九龙坡区人民检察院", "agent": "重庆市政府采购中心", "notice_type": "公开招标", "search_keyword": "劳务外包"}, {"title": "九江市建设监理有限公司关于浔阳区湖滨桃园小学食堂劳务外包采购项目（项目编号：JJJS2026-082）澄清说明", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gzgg/202607/t20260727_27013534.htm", "publish_date": "2026.07.27 16:25:06", "purchaser": "浔阳区湖滨桃园小学", "agent": "九江市建设监理有限公司", "notice_type": "更正公告", "search_keyword": "劳务外包"}, {"title": "宁波高专建设监理有限公司关于宁波市鄞州区钟公庙中心初级中学食堂劳务外包项目的竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260727_27013557.htm", "publish_date": "2026.07.27 16:25:04", "purchaser": "宁波市鄞州区钟公庙中心初级中学", "agent": "宁波高专建设监理有限公司", "notice_type": "竞争性磋商", "search_keyword": "劳务外包"}, {"title": "杨林桥镇中心卫生院劳务外包招标采购项目成交结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260727_27013356.htm", "publish_date": "2026.07.27 16:15:28", "purchaser": "秭归县杨林桥镇中心卫生院", "agent": "湖北石华工程咨询有限公司", "notice_type": "中标公告", "search_keyword": "劳务外包"}, {"title": "宣恩县中西医结合医院劳务外包服务项目（救护车、食堂、收费室）公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260727_27013170.htm", "publish_date": "2026.07.27 16:08:12", "purchaser": "宣恩县中西医结合医院", "agent": "湖北启扬项目管理有限责任公司", "notice_type": "竞争性磋商", "search_keyword": "劳务外包"}, {"title": "2026年度张家界市消防救援支队保洁及洗碗工劳务外包采购项目竞争性谈判公告", "url": "http://www.ccgp.gov.cn/cggg/zygg/jzxtpgg/202607/t20260727_27012217.htm", "publish_date": "2026.07.27 15:21:00", "purchaser": "张家界市消防救援支队", "agent": "中科高盛咨询集团有限公司", "notice_type": "竞争性谈判", "search_keyword": "劳务外包"}, {"title": "辽源市机关事务管理局劳务外包采购项目中标(成交)结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260727_27011754.htm", "publish_date": "2026.07.27 14:36:51", "purchaser": "辽源市机关事务管理局", "agent": "辽源市政府集中采购中心", "notice_type": "中标公告", "search_keyword": "劳务外包"}, {"title": "武汉市一初学苑武汉市一初学苑食堂劳务外包服务公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260726_27009259.htm", "publish_date": "2026.07.26 14:42:51", "purchaser": "武汉市一初学苑", "agent": "武汉森霖工程咨询有限公司", "notice_type": "公开招标", "search_keyword": "劳务外包"}, {"title": "浙江五石中正工程咨询有限公司关于路桥区市场监督管理局食堂劳务外包服务项目中标(成交)结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260725_27008464.htm", "publish_date": "2026.07.25 17:34:43", "purchaser": "台州市路桥区市场监督管理局", "agent": "浙江五石中正工程咨询有限公司", "notice_type": "中标公告", "search_keyword": "劳务外包"}, {"title": "江山市中诚采购代理有限责任公司关于江山市凤林学校食堂劳务外包采购项目中标结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260725_27008391.htm", "publish_date": "2026.07.25 17:20:50", "purchaser": "江山市凤林学校", "agent": "江山市中诚采购代理有限责任公司", "notice_type": "中标公告", "search_keyword": "劳务外包"}, {"title": "浙江卓宏建设项目管理有限公司关于柯城区航埠镇中心小学2026-2027学年食堂劳务外包采购项目的公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260725_27007353.htm", "publish_date": "2026.07.25 08:55:52", "purchaser": "衢州市柯城区航埠镇中心小学", "agent": "浙江卓宏建设项目管理有限公司", "notice_type": "公开招标", "search_keyword": "劳务外包"}, {"title": "浙江衢州公信工程管理有限公司关于衢州市柯城区大成小学2026、2027学年食堂劳务外包服务采购项目的公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260724_27005312.htm", "publish_date": "2026.07.24 18:01:24", "purchaser": "衢州市柯城区大成小学", "agent": "浙江衢州公信工程管理有限公司", "notice_type": "公开招标", "search_keyword": "劳务外包"}, {"title": "赣州市启航招标代理有限公司关于江西省兴国县行政审批局兴国县政务服务大厅综合窗口人员劳务外包项目（项目编号：GZQH2026-XG-G008）的电子化公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260724_27004157.htm", "publish_date": "2026.07.24 17:10:16", "purchaser": "兴国县行政审批局", "agent": "赣州市启航招标代理有限公司", "notice_type": "公开招标", "search_keyword": "劳务外包"}, {"title": "四川省都江堰水利发展中心外江管理处2026年劳务外包采购项目招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260724_27004077.htm", "publish_date": "2026.07.24 17:08:22", "purchaser": "四川省都江堰水利发展中心", "agent": "四川宗兴国际招标有限公司", "notice_type": "公开招标", "search_keyword": "劳务外包"}, {"title": "四川省都江堰水利发展中心毗河管理处2026年下半年劳务外包采购项目招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260724_27003800.htm", "publish_date": "2026.07.24 16:59:24", "purchaser": "四川省都江堰水利发展中心", "agent": "四川国际招标有限责任公司", "notice_type": "公开招标", "search_keyword": "劳务外包"}, {"title": "关于阳新县莲花湖学校阳新县莲花湖学校食堂劳务外包服务项目公开招标更正公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gzgg/202607/t20260724_27003713.htm", "publish_date": "2026.07.24 16:56:43", "purchaser": "阳新县莲花湖学校", "agent": "柏淳项目管理（湖北）有限公司", "notice_type": "公开招标", "search_keyword": "劳务外包"}, {"title": "江山市中诚采购代理有限责任公司关于江山市上余初级中学食堂劳务外包采购项目中标结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260724_27002705.htm", "publish_date": "2026.07.24 16:19:46", "purchaser": "江山市上余初级中学", "agent": "江山市中诚采购代理有限责任公司", "notice_type": "中标公告", "search_keyword": "劳务外包"}, {"title": "河南法官进修学院后厨劳务外包服务采购项目-成交公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/cjgg/202607/t20260724_26999897.htm", "publish_date": "2026.07.24 12:12:09", "purchaser": "河南法官进修学院", "agent": "河南兴达工程咨询有限公司", "notice_type": "竞争性磋商", "search_keyword": "劳务外包"}, {"title": "江山市中诚采购代理有限责任公司关于江山经济开发区小学食堂劳务外包采购项目中标结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260724_26999343.htm", "publish_date": "2026.07.24 11:30:09", "purchaser": "江山经济开发区小学", "agent": "江山市中诚采购代理有限责任公司", "notice_type": "中标公告", "search_keyword": "劳务外包"}, {"title": "广西瑞真工程造价咨询有限责任公司关于北海市中医医院食堂劳务外包服务（二次）的竞争性磋商公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260724_26998641.htm", "publish_date": "2026.07.24 10:35:00", "purchaser": "北海市中医医院", "agent": "广西瑞真工程造价咨询有限责任公司", "notice_type": "竞争性磋商", "search_keyword": "劳务外包"}, {"title": "哈密市中心医院劳务外包服务采购项目（二次）公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260723_26996783.htm", "publish_date": "2026.07.23 20:10:28", "purchaser": "哈密市中心医院", "agent": "正大方略工程咨询有限公司", "notice_type": "公开招标", "search_keyword": "劳务外包"}, {"title": "罗田县城西小学食堂劳务外包服务采购项目公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/jzxcs/202607/t20260723_26996101.htm", "publish_date": "2026.07.23 18:28:49", "purchaser": "罗田县城西小学", "agent": "湖北鑫和项目管理有限公司", "notice_type": "竞争性磋商", "search_keyword": "劳务外包"}, {"title": "三原县卫生健康局三原县精神病医院后勤服务保安劳务外包项目中标（成交）结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/cjgg/202607/t20260723_26995335.htm", "publish_date": "2026.07.23 17:38:59", "purchaser": "三原县卫生健康局", "agent": "三原县政府采购中心", "notice_type": "成交公告", "search_keyword": "劳务外包"}, {"title": "江山市中诚采购代理有限责任公司关于江山市长台初级中学食堂劳务外包服务采购项目中标结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260723_26994654.htm", "publish_date": "2026.07.23 17:09:10", "purchaser": "江山市长台初级中学", "agent": "江山市中诚采购代理有限责任公司", "notice_type": "中标公告", "search_keyword": "劳务外包"}, {"title": "浙江建兴项目管理有限公司关于青田县职业技术学校2026学年食堂劳务外包项目采购中标(成交)结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260723_26992632.htm", "publish_date": "2026.07.23 15:50:12", "purchaser": "青田县职业技术学校", "agent": "浙江建兴项目管理有限公司", "notice_type": "中标公告", "search_keyword": "劳务外包"}, {"title": "江山市中诚采购代理有限责任公司关于江山市峡口小学食堂劳务外包采购项目中标结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260723_26991558.htm", "publish_date": "2026.07.23 14:45:09", "purchaser": "江山市峡口小学", "agent": "江山市中诚采购代理有限责任公司", "notice_type": "中标公告", "search_keyword": "劳务外包"}, {"title": "国家税务总局晋州市税务局劳务外包服务项目中标公告", "url": "http://www.ccgp.gov.cn/cggg/zygg/zbgg/202607/t20260723_26990332.htm", "publish_date": "2026.07.23 11:36:41", "purchaser": "国家税务总局石家庄市税务局", "agent": "河北博鸿工程项目管理有限公司", "notice_type": "中标公告", "search_keyword": "劳务外包"}, {"title": "河北省文物考古研究院2026年度劳务外包项目公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260723_26989783.htm", "publish_date": "2026.07.23 10:43:34", "purchaser": "河北省文物考古研究院", "agent": "河北中昀工程管理服务有限公司", "notice_type": "公开招标", "search_keyword": "劳务外包"}, {"title": "培训人员劳务外包服务项目公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260722_26988609.htm", "publish_date": "2026.07.22 23:45:45", "purchaser": "青岛市市立医院", "agent": "山东天惠兴招标咨询有限公司", "notice_type": "公开招标", "search_keyword": "劳务外包"}, {"title": "吉安人力资源服务产业园城南园区第三方运营管理服务项目结果公示", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260723_26992556.htm", "publish_date": "2026.07.23 15:45:06", "purchaser": "吉安市人力资源和社会保障局", "agent": "江西诚科工程咨询管理有限公司", "notice_type": "中标公告", "search_keyword": "人力资源服务"}, {"title": "［江西省公共资源交易平台］吉安人力资源服务产业园城南园区第三方运营管理服务项目结果公示", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260723_26992553.htm", "publish_date": "2026.07.23 15:45:02", "purchaser": "吉安市人力资源和社会保障局", "agent": "江西诚科工程咨询管理有限公司", "notice_type": "中标公告", "search_keyword": "人力资源服务"}, {"title": "宁波国际投资咨询有限公司关于第十一届人力资源服务创新创业大赛（宁波）综合制作服务中标(成交)结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260722_26986095.htm", "publish_date": "2026.07.22 17:15:13", "purchaser": "宁波市人力资源和社会保障局", "agent": "宁波国际投资咨询有限公司", "notice_type": "中标公告", "search_keyword": "人力资源服务"}, {"title": "中国科学院西北生态环境资源研究院人力资源服务机构竞争性遴选项目中选公告", "url": "http://www.ccgp.gov.cn/cggg/zygg/cjgg/202607/t20260722_26985158.htm", "publish_date": "2026.07.22 16:49:02", "purchaser": "中国科学院西北生态环境资源研究院", "agent": "东方国际招标有限责任公司", "notice_type": "成交公告", "search_keyword": "人力资源服务"}, {"title": "日照高新区公益性人力资源服务等就业公共服务、劳动人事争议调解服务项目中标（成交）结果公告（采购包1）", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260721_26979958.htm", "publish_date": "2026.07.21 23:48:27", "purchaser": "中共日照市委高新技术产业开发区工作委员会党群工作部", "agent": "山东步澳管理咨询有限公司", "notice_type": "中标公告", "search_keyword": "人力资源服务"}, {"title": "第三届西部人力资源服务创新创业大赛项目(CQS26C01785)中标（成交）结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/cjgg/202607/t20260721_26975327.htm", "publish_date": "2026.07.21 16:05:06", "purchaser": "重庆市人力资源开发服务中心", "agent": "重庆仕达招标代理有限公司", "notice_type": "竞争性磋商", "search_keyword": "人力资源服务"}, {"title": "新疆医科大学附属肿瘤医院部分岗位外包服务招标项目公开招标公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/gkzb/202607/t20260723_26996558.htm", "publish_date": "2026.07.23 19:36:51", "purchaser": "新疆医科大学附属肿瘤医院", "agent": "中招国际招标有限公司", "notice_type": "公开招标", "search_keyword": "岗位外包"}, {"title": "西安市胸科医院岗位外包服务中标（成交）结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/cjgg/202607/t20260722_26983861.htm", "publish_date": "2026.07.22 15:44:59", "purchaser": "西安市胸科医院", "agent": "华夏国际项目管理（西安）有限公司", "notice_type": "成交公告", "search_keyword": "岗位外包"}, {"title": "河南省工业和信息化厅服务岗位外包项目-成交公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/cjgg/202607/t20260721_26977147.htm", "publish_date": "2026.07.21 17:13:43", "purchaser": "河南省工业和信息化厅", "agent": "中海域安项目管理咨询有限公司", "notice_type": "竞争性磋商", "search_keyword": "岗位外包"}, {"title": "长春市人民政府机关第三幼儿园学前教育辅助性岗位外包服务项目结果公告", "url": "http://www.ccgp.gov.cn/cggg/dfgg/zbgg/202607/t20260721_26972217.htm", "publish_date": "2026.07.21 10:52:07", "purchaser": "长春市人民政府机关第三幼儿园", "agent": "长春市万力工程咨询有限公司", "notice_type": "中标公告", "search_keyword": "岗位外包"}];
+let currentFilter = 'all';
+
+function loadData() {
+  render();
+}
+
+function getBadgeClass(type) {
+  const openTypes = ['公开招标', '竞争性磋商', '竞争性谈判', '询价公告', '单一来源'];
+  const winTypes = ['中标公告', '成交公告'];
+  if (openTypes.includes(type)) return 'open';
+  if (winTypes.includes(type)) return 'win';
+  return 'other';
+}
+
+function getBadgeLabel(type) {
+  return type || '其他';
+}
+
+function render() {
+  const query = document.getElementById('searchInput').value.toLowerCase().trim();
+
+  let filtered = allData.filter(item => {
+    // filter by type
+    if (currentFilter !== 'all') {
+      const bc = getBadgeClass(item.notice_type);
+      if (bc !== currentFilter) return false;
+    }
+    // filter by search
+    if (query) {
+      const text = (item.title + ' ' + item.purchaser + ' ' + item.agent + ' ' + (item.search_keyword || '')).toLowerCase();
+      if (!text.includes(query)) return false;
+    }
+    return true;
+  });
+
+  // Stats
+  const openCount = allData.filter(i => getBadgeClass(i.notice_type) === 'open').length;
+  const winCount = allData.filter(i => getBadgeClass(i.notice_type) === 'win').length;
+  const otherCount = allData.length - openCount - winCount;
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card"><div class="num">${allData.length}</div><div class="label">总计</div></div>
+    <div class="stat-card"><div class="num green">${openCount}</div><div class="label">招标中</div></div>
+    <div class="stat-card"><div class="num orange">${winCount}</div><div class="label">已中标</div></div>
+    <div class="stat-card"><div class="num" style="color:#757575">${otherCount}</div><div class="label">其他</div></div>
+  `;
+
+  // Group by date
+  const grouped = {};
+  filtered.forEach(item => {
+    const date = (item.publish_date || '').split(' ')[0] || '未知日期';
+    if (!grouped[date]) grouped[date] = [];
+    grouped[date].push(item);
+  });
+
+  const sortedDates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+
+  const content = document.getElementById('content');
+  document.getElementById('headerTime').textContent = `共 ${allData.length} 条记录 · ${sortedDates.length} 个日期 · 更新于 ${new Date().toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'})}`;
+
+  if (filtered.length === 0) {
+    content.innerHTML = '<div class="empty">没有匹配的记录</div>';
+    return;
+  }
+
+  let html = '';
+  for (const date of sortedDates) {
+    const items = grouped[date];
+    html += `<div class="date-label">${date} <span class="count">${items.length} 条</span></div>`;
+    for (const item of items) {
+      const bc = getBadgeClass(item.notice_type);
+      html += `
+        <div class="card">
+          <span class="badge ${bc}">${getBadgeLabel(item.notice_type)}</span>
+          <div class="card-body">
+            <div class="card-title">
+              <a href="${item.url}" target="_blank" rel="noopener">${escHtml(item.title)}</a>
+              ${item.search_keyword ? `<span class="card-keyword">${escHtml(item.search_keyword)}</span>` : ''}
+            </div>
+            <div class="card-meta">
+              ${item.purchaser ? `<span>🏢 ${escHtml(item.purchaser)}</span>` : ''}
+              ${item.agent ? `<span>🏗️ ${escHtml(item.agent)}</span>` : ''}
+              ${item.publish_date ? `<span>📅 ${escHtml(item.publish_date)}</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  }
+  content.innerHTML = html;
+}
+
+function escHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+function setFilter(btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = btn.dataset.filter;
+  render();
+}
+
+loadData();
+</script>
+</body>
+</html>
